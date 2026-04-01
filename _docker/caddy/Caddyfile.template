@@ -1,0 +1,7 @@
+# dev-machine Caddyfile
+# Each instance gets a server block auto-generated below.
+# TLS certificates via mkcert (local CA) or Caddy ACME.
+
+{
+	auto_https off
+}

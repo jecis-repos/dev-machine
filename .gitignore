@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tgz
+.env
+.env.local
+registry.json
+registry.json.lock
+audit.jsonl
+backups/
+_docker/caddy/certs/
+*.dump
