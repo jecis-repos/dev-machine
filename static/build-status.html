@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build in Progress</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+    background: #0d1117;
+    color: #c9d1d9;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .container { max-width: 560px; width: 100%; padding: 2rem; }
+  h1 { font-size: 1.4rem; color: #58a6ff; margin-bottom: 0.5rem; }
+  .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 2rem; }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 0.85rem;
+  }
+  .step:last-child { border-bottom: none; }
+  .icon { width: 20px; text-align: center; flex-shrink: 0; }
+  .pending .icon { color: #484f58; }
+  .active .icon { color: #d29922; animation: pulse 1.5s infinite; }
+  .done .icon { color: #3fb950; }
+  .warning .icon { color: #d29922; }
+  .error .icon { color: #f85149; }
+  .step-name { flex: 1; }
+  .duration { color: #8b949e; font-size: 0.75rem; }
+  .status-bar {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 6px;
+    background: #161b22;
+    text-align: center;
+  }
+  .status-bar.building { border-left: 3px solid #d29922; }
+  .status-bar.complete { border-left: 3px solid #3fb950; }
+  .status-bar.error { border-left: 3px solid #f85149; }
+  .progress {
+    height: 4px;
+    background: #21262d;
+    border-radius: 2px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #58a6ff;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .meta { color: #8b949e; font-size: 0.75rem; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 id="title">Building instance...</h1>
+  <div class="subtitle" id="subtitle">Provisioning environment</div>
+  <div id="steps"></div>
+  <div class="status-bar building" id="status-bar">
+    <div id="status-text">Building...</div>
+    <div class="progress"><div class="progress-fill" id="progress" style="width: 0%"></div></div>
+  </div>
+  <div class="meta" id="meta"></div>
+</div>
+<script>
+const POLL_MS = 2000;
+const statusUrl = window.location.pathname.replace(/build-status\.html$/, 'build-status.json');
+
+const icons = {
+  pending: '&#9675;',
+  active: '&#9654;',
+  done: '&#10003;',
+  warning: '&#9888;',
+  error: '&#10007;',
+};
+
+function formatDuration(ms) {
+  if (!ms) return '';
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
+function render(data) {
+  document.getElementById('title').textContent =
+    data.status === 'complete' ? `${data.displayName} is ready!` :
+    data.status === 'error' ? `Build failed` :
+    `Building ${data.displayName}...`;
+
+  document.getElementById('subtitle').textContent =
+    `${data.mode === 'create' ? 'Creating' : 'Updating'} from branch ${data.branch}`;
+
+  const stepsEl = document.getElementById('steps');
+  stepsEl.innerHTML = data.steps.map(s => `
+    <div class="step ${s.status}">
+      <span class="icon">${icons[s.status]}</span>
+      <span class="step-name">${s.name}</span>
+      <span class="duration">${formatDuration(s.duration)}</span>
+    </div>
+  `).join('');
+
+  const pct = data.totalSteps > 0 ? Math.round((data.currentStep / data.totalSteps) * 100) : 0;
+  document.getElementById('progress').style.width = `${pct}%`;
+
+  const bar = document.getElementById('status-bar');
+  bar.className = `status-bar ${data.status}`;
+  document.getElementById('status-text').textContent =
+    data.status === 'complete' ? 'Build complete — redirecting...' :
+    data.status === 'error' ? `Error: ${data.error || 'Unknown error'}` :
+    `Step ${data.currentStep}/${data.totalSteps}: ${data.stepName}`;
+
+  document.getElementById('meta').textContent =
+    `Started ${new Date(data.startedAt).toLocaleTimeString()} · Updated ${new Date(data.updatedAt).toLocaleTimeString()}`;
+
+  if (data.status === 'complete') {
+    setTimeout(() => window.location.reload(), 3000);
+  }
+}
+
+async function poll() {
+  try {
+    const res = await fetch(statusUrl, { cache: 'no-store' });
+    if (res.ok) render(await res.json());
+  } catch {}
+  setTimeout(poll, POLL_MS);
+}
+poll();
+</script>
+</body>
+</html>
