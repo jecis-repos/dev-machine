@@ -26,6 +26,7 @@ export const CADDYFILE_PATH = `${BASE_DIR}/_docker/caddy/Caddyfile`;
 export const INIT_SQL_PATH = `${BASE_DIR}/_docker/postgres/init.sql`;
 export const MAKEFILE_PATH = `${BASE_DIR}/Makefile`;
 export const REGISTRY_PATH = `${BASE_DIR}/mcp-server/registry.json`;
+export const WORKTREE_REGISTRY_PATH = `${BASE_DIR}/mcp-server/worktree-registry.json`;
 export const ENV_TEMPLATE_PATH = `${BASE_DIR}/_docker/env.template`;
 
 /* ------------------------------------------------------------------ */
@@ -190,6 +191,25 @@ export const COMPOSE_PROJECT =
 export function instanceHostname(prefix: string): string {
   return `${prefix}.${DOMAIN_SUFFIX}`;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Fix-loop worktree defaults                                         */
+/*                                                                     */
+/*  These mirror the Atelier `WorktreeProvisioner` ctor defaults.      */
+/*  They target a pre-existing pgvector container (port 5435) — NOT    */
+/*  the per-instance Postgres on 5432.                                 */
+/* ------------------------------------------------------------------ */
+
+export const FIXLOOP_PG_HOST =
+  process.env.DEVMACHINE_FIXLOOP_PG_HOST?.trim() || "127.0.0.1";
+export const FIXLOOP_PG_PORT =
+  process.env.DEVMACHINE_FIXLOOP_PG_PORT?.trim() || "5435";
+export const FIXLOOP_PG_USER =
+  process.env.DEVMACHINE_FIXLOOP_PG_USER?.trim() || "autonomy";
+export const FIXLOOP_PG_PASSWORD =
+  process.env.DEVMACHINE_FIXLOOP_PG_PASSWORD?.trim() || "autonomy_secret";
+export const FIXLOOP_DB_OWNER =
+  process.env.DEVMACHINE_FIXLOOP_DB_OWNER?.trim() || "atelier";
 
 /* ------------------------------------------------------------------ */
 /*  Data types                                                         */

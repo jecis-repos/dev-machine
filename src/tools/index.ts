@@ -16,6 +16,11 @@ import { listBackups } from "./list-backups.js";
 import { runCommand } from "./run-command.js";
 import { viewLogs } from "./view-logs.js";
 
+import { worktreeCreate } from "./worktree-create.js";
+import { worktreeRemove } from "./worktree-remove.js";
+import { worktreeList } from "./worktree-list.js";
+import { worktreeStatus } from "./worktree-status.js";
+
 export function registerTools(server: McpServer): void {
   /* ---------------------------------------------------------------- */
   /*  create-instance                                                  */
@@ -179,6 +184,72 @@ export function registerTools(server: McpServer): void {
     },
     async (params) => {
       const result = await viewLogs(params);
+      return { content: [{ type: "text" as const, text: result }] };
+    },
+  );
+
+  /* ================================================================ */
+  /*  worktree-*  — lightweight git-worktree-based fix-loop agents.   */
+  /*                                                                  */
+  /*  These are intentionally parallel to (but separate from) the     */
+  /*  *-instance tools above. No Docker, no Caddy, no Redis, no port  */
+  /*  allocation. They drive `git worktree add` against a shared      */
+  /*  `.git` and `CREATE DATABASE` on an existing pgvector container. */
+  /*                                                                  */
+  /*  Authoritative behaviour spec:                                   */
+  /*    app/Modules/Dev/Services/WorktreeProvisioner.php              */
+  /*    app/Modules/Dev/Services/WaveCleanupService.php               */
+  /*  in the Atelier (autonamyaiaiai/test) repo.                      */
+  /* ================================================================ */
+
+  server.tool(
+    "worktree-create",
+    "Provision a git-worktree + dedicated pgvector DB for a fix-loop coding agent. " +
+      "Idempotent: re-running for the same task_id removes prior worktree+branch and drops+recreates the DB. " +
+      "Creates the `vector` extension on the new DB (required for the W33 agent_skills migration).",
+    {
+      task_id: z.string().describe("Kebab-case task id (a-z, 0-9, -, _). Used as DB name + branch suffix."),
+      repo_root: z.string().describe("Absolute path to the Atelier repo root (the worktree is created under <repo_root>/.claude/worktrees/agent-<task_id>)."),
+      base_ref: z.string().optional().describe("Git ref to branch from (default 'origin/master')."),
+      ttl_hours: z.number().optional().describe("Auto-expire after N hours (advisory; not enforced here)."),
+    },
+    async (params) => {
+      const result = await worktreeCreate(params);
+      return { content: [{ type: "text" as const, text: result }] };
+    },
+  );
+
+  server.tool(
+    "worktree-remove",
+    "Tear down a worktree: `git worktree remove --force` + `DROP DATABASE IF EXISTS`. " +
+      "Best-effort — registry entry is removed even if git/psql fail so a half-cleaned worktree doesn't get stuck.",
+    {
+      task_id: z.string().describe("Task id of a registered worktree."),
+    },
+    async (params) => {
+      const result = await worktreeRemove(params);
+      return { content: [{ type: "text" as const, text: result }] };
+    },
+  );
+
+  server.tool(
+    "worktree-list",
+    "List all registered worktrees with their branch, path, and DB coordinates.",
+    {},
+    async () => {
+      const result = await worktreeList();
+      return { content: [{ type: "text" as const, text: result }] };
+    },
+  );
+
+  server.tool(
+    "worktree-status",
+    "Health-check a registered worktree: does the filesystem path exist, and does `SELECT 1` succeed against the dedicated DB?",
+    {
+      task_id: z.string().describe("Task id of a registered worktree."),
+    },
+    async (params) => {
+      const result = await worktreeStatus(params);
       return { content: [{ type: "text" as const, text: result }] };
     },
   );

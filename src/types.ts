@@ -78,3 +78,49 @@ export interface RestoreBackupInput {
   restore_databases?: boolean;
   restore_files?: boolean;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Worktree                                                           */
+/*                                                                     */
+/*  Parallel — but intentionally separate from — `Instance`.           */
+/*  Worktrees use `git worktree add` against a shared `.git` and a     */
+/*  dedicated DB on an existing pgvector container (port 5435 by       */
+/*  default). No Docker, Caddy, Redis, or port allocation.             */
+/* ------------------------------------------------------------------ */
+
+export interface Worktree {
+  task_id: string;              // kebab-case, used as DB name + branch suffix
+  worktree_path: string;        // absolute path to the worktree
+  branch: string;               // e.g. "agent-<task_id>"
+  base_ref: string;             // ref the worktree was branched from
+  db_host: string;
+  db_port: string;
+  db_username: string;
+  db_password: string;
+  db_database: string;          // dedicated DB on the pgvector container
+  created_at: string;           // ISO-8601
+  expires_at?: string;          // optional TTL
+}
+
+export interface WorktreeRegistry {
+  worktrees: Worktree[];
+}
+
+export interface WorktreeCreateInput {
+  task_id: string;
+  repo_root: string;
+  base_ref?: string;
+  ttl_hours?: number;
+}
+
+export interface WorktreeRemoveInput {
+  task_id: string;
+}
+
+export interface WorktreeListInput {
+  // no params; placeholder for future filters
+}
+
+export interface WorktreeStatusInput {
+  task_id: string;
+}
