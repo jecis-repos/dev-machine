@@ -15,6 +15,8 @@ import { restoreBackup } from "./restore-backup.js";
 import { listBackups } from "./list-backups.js";
 import { runCommand } from "./run-command.js";
 import { viewLogs } from "./view-logs.js";
+import { dispatchFixLoopWave } from "./dispatch-fix-loop-wave.js";
+import { harvestFixLoopWave } from "./harvest-fix-loop-wave.js";
 
 import { worktreeCreate } from "./worktree-create.js";
 import { worktreeRemove } from "./worktree-remove.js";
@@ -251,6 +253,62 @@ export function registerTools(server: McpServer): void {
     async (params) => {
       const result = await worktreeStatus(params);
       return { content: [{ type: "text" as const, text: result }] };
+    },
+  );
+
+  /* ================================================================ */
+  /*  fix-loop dispatch + harvest                                     */
+  /*                                                                  */
+  /*  Ports the dispatch + harvest halves of Atelier's L5-L9 fix-loop */
+  /*  Actions (`dev.fix-loop.dispatch`, `dev.fix-loop.harvest`).       */
+  /* ================================================================ */
+
+  const fixLoopClusterSchema = z
+    .object({
+      cluster: z.string().describe("Cluster id (kebab-case)"),
+      task_id: z.string().describe("Worktree task id"),
+      worktree_path: z.string().describe("Absolute path to the cluster worktree"),
+      db_database: z.string().describe("Dedicated pgvector database for the cluster"),
+      tests: z.array(z.string()).describe("Failing tests the agent must drive to green"),
+      diff_path: z.string().describe("Absolute path the agent writes its diff to"),
+      report_path: z.string().describe("Absolute path the agent writes its report to"),
+      status: z.string().optional(),
+      dispatch_id: z.string().nullable().optional(),
+      retry_count: z.number().optional(),
+      report: z.string().optional(),
+    })
+    .passthrough();
+
+  server.tool(
+    "dispatch-fix-loop-wave",
+    "Spawn a coding-agent bridge (claude-code, codex, amp, crush, or mock) for each cluster in a fix-loop wave. " +
+      "Fire-and-forget: returns once spawned; the agent writes its diff/report to disk async. " +
+      "Use `harvest-fix-loop-wave` to scan for completion.",
+    {
+      wave: z.string().describe("Wave identifier"),
+      clusters: z.array(fixLoopClusterSchema).describe("Cluster specs (FixLoopWave JSONB shape)"),
+      bridge: z
+        .enum(["claude-code", "codex", "amp", "crush", "mock"])
+        .optional()
+        .describe("Override DEVMACHINE_FIXLOOP_BRIDGE for this call"),
+    },
+    async (params) => {
+      const result = await dispatchFixLoopWave(params);
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "harvest-fix-loop-wave",
+    "Scan disk for each cluster's expected .diff / .report.md / .failed / .retry-failed artifacts " +
+      "and return updated cluster specs plus a {harvested, failed, in_flight} count summary.",
+    {
+      wave: z.string().describe("Wave identifier"),
+      clusters: z.array(fixLoopClusterSchema).describe("Cluster specs (FixLoopWave JSONB shape)"),
+    },
+    async (params) => {
+      const result = await harvestFixLoopWave(params);
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
 }

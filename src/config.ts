@@ -212,6 +212,63 @@ export const FIXLOOP_DB_OWNER =
   process.env.DEVMACHINE_FIXLOOP_DB_OWNER?.trim() || "atelier";
 
 /* ------------------------------------------------------------------ */
+/*  Fix-loop coding-agent bridges                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Coding-agent bridge identifier.
+ *
+ * `claude-code` / `codex` / `amp` / `crush` spawn the corresponding CLI;
+ * `mock` short-circuits the spawn and writes synthetic diff/report
+ * files. The Atelier PHP original calls `agents.dispatch_intent` — an
+ * internal Action that talks to bridge processes. This Node port skips
+ * that indirection and spawns the coding-agent CLI directly.
+ */
+export type CodingAgentBridge =
+  | "claude-code"
+  | "codex"
+  | "amp"
+  | "crush"
+  | "mock";
+
+/**
+ * Default bridge used by `dispatch-fix-loop-wave` when the caller does
+ * not pass an explicit `bridge` override. Override via
+ * `DEVMACHINE_FIXLOOP_BRIDGE`.
+ */
+export const FIXLOOP_DEFAULT_BRIDGE: CodingAgentBridge =
+  (process.env.DEVMACHINE_FIXLOOP_BRIDGE as CodingAgentBridge) ||
+  "claude-code";
+
+/**
+ * Path/name of the Claude Code CLI binary. Override via
+ * `DEVMACHINE_FIXLOOP_CLAUDE_CODE_BIN` (default: `claude`).
+ */
+export const FIXLOOP_CLAUDE_CODE_BIN =
+  process.env.DEVMACHINE_FIXLOOP_CLAUDE_CODE_BIN || "claude";
+
+/**
+ * Path/name of the Codex CLI binary. Override via
+ * `DEVMACHINE_FIXLOOP_CODEX_BIN` (default: `codex`).
+ */
+export const FIXLOOP_CODEX_BIN =
+  process.env.DEVMACHINE_FIXLOOP_CODEX_BIN || "codex";
+
+/**
+ * Path/name of the Sourcegraph Amp CLI binary. Override via
+ * `DEVMACHINE_FIXLOOP_AMP_BIN` (default: `amp`).
+ */
+export const FIXLOOP_AMP_BIN =
+  process.env.DEVMACHINE_FIXLOOP_AMP_BIN || "amp";
+
+/**
+ * Path/name of the Charm Crush terminal CLI binary. Override via
+ * `DEVMACHINE_FIXLOOP_CRUSH_BIN` (default: `crush`).
+ */
+export const FIXLOOP_CRUSH_BIN =
+  process.env.DEVMACHINE_FIXLOOP_CRUSH_BIN || "crush";
+
+/* ------------------------------------------------------------------ */
 /*  Data types                                                         */
 /* ------------------------------------------------------------------ */
 
