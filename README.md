@@ -33,6 +33,18 @@ npm run tui
 
 On first launch, a setup wizard walks you through prerequisites (Docker, mkcert, git) and initial configuration.
 
+### Running the HTTP MCP server
+
+For AI tools / external services that prefer HTTP over stdio:
+
+```bash
+dev-machine --http=8730
+# or: DEVMACHINE_HTTP_PORT=8730 dev-machine --http
+```
+
+The MCP endpoint is at `POST /mcp`; health check at `GET /healthz`. The host
+defaults to `127.0.0.1` and can be overridden with `DEVMACHINE_HTTP_HOST`.
+
 ## TUI dashboard layout
 
 The dashboard is a full-screen terminal interface split into distinct panels:
