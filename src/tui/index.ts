@@ -9,7 +9,8 @@
 import blessed from 'blessed';
 import { execFile, execFileSync } from 'child_process';
 import { mkdir, readFile, rename, writeFile } from 'fs/promises';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import os from 'os';
 
@@ -2558,8 +2559,11 @@ export async function startTui(): Promise<void> {
   await bootstrap();
 }
 
-// Auto-start when run as main module
-bootstrap().catch(error => {
-  appendLog(`Fatal startup error: ${toErrorMessage(error)}`);
-  setFooterStatus('Fatal startup error. Press q to quit.');
-});
+// Imports are started by the CLI; direct execution starts once here.
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  startTui().catch(error => {
+    appendLog(`Fatal startup error: ${toErrorMessage(error)}`);
+    setFooterStatus('Fatal startup error. Press q to quit.');
+    process.exitCode = 1;
+  });
+}
