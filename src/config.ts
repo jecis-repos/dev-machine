@@ -5,6 +5,7 @@
  * defaults so the project works out of the box for local development.
  */
 
+import "dotenv/config";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, readFileSync } from "fs";
